@@ -24,28 +24,34 @@ export class IterativeComponentReplacement {
     this._layout = layout;
   }
 
-  run() {
+  run(): bool {
     while (!this._isDone()) {
+      var replacementResult: ?ComponentReplacement;
+
       // Use preferred patterns first
+      patterns:
       for (var i = 0; i < Patterns.allPatterns.length; ++i) {
-        var replacementResult: ?ComponentReplacement;
         var pattern = Patterns.allPatterns[i];
 
         for (var j = 0; j < this._layout.getBoxes().length; ++j) {
           var box = this._layout.getBoxes()[j];
           replacementResult = pattern(box);
           if (replacementResult) {
-            break;
+            // If we want to replace anything, restart the whole process
+            break patterns;
           }
         }
+      }
 
-        // If we want to replace anything, restart the whole process
-        if (replacementResult) {
-          this._replace(replacementResult);
-          break;
-        }
+      if (replacementResult) {
+        this._replace(replacementResult);
+      } else if (!this._isDone()) {
+        // We don't have any patterns to update any boxes, and yet we aren't
+        // finished.
+        return false;
       }
     }
+    return true;
   }
 
   _isDone() {
