@@ -1,21 +1,17 @@
 /* @flow */
 
 import {
-  Box,
   Constraint,
   Layout,
   Property,
-  cloneConstraint,
   getPropertyConstraint,
-} from './layoutIntent'
-
+} from './layoutIntent';
 import {
   Component,
   ComponentReplacement,
   Patterns,
-} from './component'
-
-import _ from 'underscore'
+} from './component';
+import _ from 'underscore';
 
 export class IterativeComponentReplacement {
   _layout: Layout;
@@ -60,7 +56,7 @@ export class IterativeComponentReplacement {
 
   _replace(replacement: ComponentReplacement) {
     var allConstraints: Constraint[] = [];
-    replacement.boxesToReplace.forEach(box =>  {
+    replacement.boxesToReplace.forEach(box => {
       allConstraints.push(...box.getConstraints());
     });
 
@@ -89,6 +85,5 @@ export class IterativeComponentReplacement {
     replacement.boxesToReplace.forEach(
       box => this._layout.removeBox(box)
     );
-    
   }
 }

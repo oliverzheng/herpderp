@@ -1,7 +1,7 @@
 /* @flow */
 
-import _ from 'underscore'
-import invariant from 'invariant'
+import _ from 'underscore';
+import invariant from 'invariant';
 
 export class Unit {
   _toString: string;
@@ -196,7 +196,6 @@ export type Style = {
   image: ?string,
 }
 
-
 export class Box {
   _layout: Layout;
   _mutableLayout: MutableLayout;
@@ -270,7 +269,7 @@ export class Box {
     return this._y;
   }
 
-  setW(w: ?Constraint): self {
+  setW(w: ?Constraint): Box {
     if (this._w) {
       this._layout.replaceConstraint(this._w, w);
     } else if (w) {
@@ -283,7 +282,7 @@ export class Box {
     return this;
   }
 
-  setH(h: ?Constraint): self {
+  setH(h: ?Constraint): Box {
     if (this._h) {
       this._layout.replaceConstraint(this._h, h);
     } else if (h) {
@@ -296,7 +295,7 @@ export class Box {
     return this;
   }
 
-  setX(x: ?Constraint): self {
+  setX(x: ?Constraint): Box {
     if (this._x) {
       this._layout.replaceConstraint(this._x, x);
     } else if (x) {
@@ -309,7 +308,7 @@ export class Box {
     return this;
   }
 
-  setY(y: ?Constraint): self {
+  setY(y: ?Constraint): Box {
     if (this._y) {
       this._layout.replaceConstraint(this._y, y);
     } else if (y) {
@@ -409,10 +408,10 @@ export class Layout {
   addBox(box: Box) {
     invariant(!_.contains(this._boxes, box), 'Box already in layout');
     box.setLayout(
-      this, 
+      this,
       {
         addProperty: this._addProperty.bind(this),
-        replaceConstraint: this.replaceConstraint.bind(this)
+        replaceConstraint: this.replaceConstraint.bind(this),
       }
     );
     this._boxes.push(box);
@@ -528,7 +527,7 @@ export class Layout {
           this.replaceConstraint(
             dependentConstraint,
             dependentConstraint.cloneAndReplaceOperand(oldConstraint, newConstraint)
-          )
+          );
         }
       );
     }

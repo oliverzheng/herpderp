@@ -5,10 +5,13 @@
   "scripts": {
     "watch": "babel src/ --out-dir build/ --source-maps --watch",
     "test": "node src/run.js",
-    "debug": "babel-node debug src/run.js"
+    "debug": "babel-node debug src/run.js",
+    "lint": "flow && eslint src"
   },
   "devDependencies": {
     "babel": "^5.8.19",
+    "babel-eslint": "^4.0.5",
+    "eslint": "^1.0.0",
     "node-inspector": "^0.12.1",
     "source-map-support": "^0.3.2"
   },

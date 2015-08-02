@@ -2,11 +2,10 @@
 
 import {
   Box,
-  Constraint,
   Layout,
   Length,
-} from './layoutIntent'
-import {IterativeComponentReplacement} from './constraintMatching'
+} from './layoutIntent';
+import {IterativeComponentReplacement} from './constraintMatching';
 
 var layout = new Layout();
 

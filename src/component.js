@@ -3,9 +3,9 @@
 import {
   Box,
   Constraint,
-  Layout,
   cloneConstraint,
-} from './layoutIntent'
+} from './layoutIntent';
+import invariant from 'invariant';
 
 export type ComponentReplacement = {
   component: Component,
