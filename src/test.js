@@ -1,8 +1,5 @@
 /* @flow */
 
-require('babel/register');
-require('source-map-support').install();
-
 import {
   Box,
   Constraint,

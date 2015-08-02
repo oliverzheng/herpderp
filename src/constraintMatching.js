@@ -25,7 +25,6 @@ export class IterativeComponentReplacement {
   }
 
   run() {
-    debugger;
     while (!this._isDone()) {
       // Use preferred patterns first
       for (var i = 0; i < Patterns.allPatterns.length; ++i) {

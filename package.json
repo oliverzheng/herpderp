@@ -4,8 +4,8 @@
   "description": "",
   "scripts": {
     "watch": "babel src/ --out-dir build/ --source-maps --watch",
-    "test": "babel-node build/test.js",
-    "debug": "babel-node debug build/test.js"
+    "test": "node src/run.js",
+    "debug": "babel-node debug src/run.js"
   },
   "devDependencies": {
     "babel": "^5.8.19",
