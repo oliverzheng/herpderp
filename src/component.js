@@ -3,9 +3,12 @@
 import {
   Box,
   Constraint,
+  DependentOperand,
+  DependentOperandReplacement,
   cloneConstraint,
   getPropertyConstraint,
 } from './layoutIntent';
+import nullthrows from './nullthrows';
 import invariant from 'invariant';
 
 export type ComponentReplacement = {
@@ -67,27 +70,65 @@ Patterns.allPatterns = [
 
 export class Component extends Box {
 
-  getReplacementConstraint(constraint: Constraint): Constraint {
-    invariant(false, 'testing');
+  getReplacementConstraint(
+    constraint: Constraint,
+    boxesToReplace: Box[]
+  ): Constraint {
+    // This is a really simple replacement. If any of the operands depend on any
+    // properties of this component, then swap it out. This won't work for
+    // slightly more complicated dependencies, like it depends on the prop of
+    // a box among a bunch of boxes that this component replaced.
+    if (boxesToReplace.length !== 1) {
+      throw new Error('NYI');
+    }
+    var box = boxesToReplace[0];
+
+    invariant(
+      constraint instanceof DependentOperand,
+      'Why else are you replacing this'
+    );
+
+    var replacementConstraints: DependentOperandReplacement[] = [];
+
+    constraint.operands.forEach(operand => {
+      var prop = this.getLayout().getPropertyForConstraint(operand);
+      if (!prop || prop.box !== box) {
+        return;
+      }
+
+      if (box.getX() === operand) {
+        replacementConstraints.push({
+          oldOperand: operand,
+          newOperand: nullthrows(this.getX()),
+        });
+      } else if (box.getY() === operand) {
+        replacementConstraints.push({
+          oldOperand: operand,
+          newOperand: nullthrows(this.getY()),
+        });
+      } else if (box.getW() === operand) {
+        replacementConstraints.push({
+          oldOperand: operand,
+          newOperand: nullthrows(this.getW()),
+        });
+      } else if (box.getH() === operand) {
+        replacementConstraints.push({
+          oldOperand: operand,
+          newOperand: nullthrows(this.getH()),
+        });
+      }
+    });
+
+    return constraint.cloneAndReplaceOperands(replacementConstraints);
   }
 
   toString(): string {
-    return `component (${this.constraintsToString()})`;
+    return `component#${this.getID()} (${this.constraintsToString()})`;
   }
 
   static cloneFromBox(box: Box): Component {
     var component = new Component();
     box.getLayout().addBox(component);
-
-    var w = box.getW();
-    if (w) {
-      component.setW(cloneConstraint(w));
-    }
-
-    var h = box.getH();
-    if (h) {
-      component.setH(cloneConstraint(h));
-    }
 
     var x = box.getX();
     if (x) {
@@ -97,6 +138,16 @@ export class Component extends Box {
     var y = box.getY();
     if (y) {
       component.setY(cloneConstraint(y));
+    }
+
+    var w = box.getW();
+    if (w) {
+      component.setW(cloneConstraint(w));
+    }
+
+    var h = box.getH();
+    if (h) {
+      component.setH(cloneConstraint(h));
     }
 
     return component;

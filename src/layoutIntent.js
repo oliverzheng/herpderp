@@ -3,6 +3,24 @@
 import _ from 'underscore';
 import invariant from 'invariant';
 
+class HasUniqueID {
+  _id: number;
+
+  constructor() {
+    if (this.constructor._nextID == null) {
+      this.constructor._nextID = 0;
+    }
+
+    this._id = this.constructor._nextID++;
+  }
+
+  getID(): number {
+    return this._id;
+  }
+
+  static _nextID: ?number;
+}
+
 export class Unit {
   _toString: string;
 
@@ -20,11 +38,12 @@ export class Unit {
 Unit.PX = new Unit('px');
 Unit.PCT = new Unit('%');
 
-export class Length {
+export class Length extends HasUniqueID {
   value: number;
   unit: Unit;
 
   constructor(value: number, unit: Unit) {
+    super();
     this.value = value;
     this.unit = unit;
   }
@@ -34,7 +53,9 @@ export class Length {
   }
 
   toString(): string {
-    return this.value.toString() + this.unit.toString();
+    return (
+      `${this.value.toString()}${this.unit.toString()}#${this.getID()}`
+    );
   }
 
   static px(value: number): Length {
@@ -52,13 +73,13 @@ export class Length {
  * - Container height width as a result of text & image children
  * - Screen size
  */
-export class UnknownLength {
+export class UnknownLength extends HasUniqueID {
   clone(): UnknownLength {
     throw new Error('NYI');
   }
 
   toString(): string {
-    return 'unknown';
+    return `unknown#${this.getID()}`;
   }
 }
 
@@ -71,6 +92,7 @@ export class Operation {
     this.prefix = prefix;
   }
 
+  static EQUALS: Operation;
   static ADD: Operation;
   static SUBTRACT: Operation;
   static MULTIPLY: Operation;
@@ -79,6 +101,7 @@ export class Operation {
   static MIN: Operation;
 }
 
+Operation.EQUALS = new Operation('=');
 Operation.ADD = new Operation('+');
 Operation.SUBTRACT = new Operation('-');
 Operation.MULTIPLY = new Operation('*');
@@ -86,13 +109,31 @@ Operation.DIVIDE = new Operation('/');
 Operation.MAX = new Operation(',', 'max');
 Operation.MIN = new Operation(',', 'min');
 
-export class DependentOperand {
+export type DependentOperandReplacement = {
+  oldOperand: Constraint,
+  newOperand: Constraint,
+}
+
+export class DependentOperand extends HasUniqueID {
   operation: Operation;
   operands: Constraint[];
 
   constructor(operation: Operation, operands: Constraint[]) {
+    super();
     this.operation = operation;
     this.operands = operands;
+  }
+
+  shallowEquals(other: DependentOperand): bool {
+    if (this.operation !== other.operation) {
+      return false;
+    }
+
+    if (this.operands.length !== other.operands.length) {
+      return false;
+    }
+
+    return this.operands.every((operand, i) => operand === other.operands[i]);
   }
 
   clone(): DependentOperand {
@@ -106,29 +147,28 @@ export class DependentOperand {
     oldOperand: Constraint,
     newOperand: Constraint
   ): DependentOperand {
-    var index = this.operands.indexOf(oldOperand);
-    invariant(index !== -1, 'Old operand not found');
+    return this.cloneAndReplaceOperands([{oldOperand, newOperand}]);
+  }
 
+  cloneAndReplaceOperands(
+    replacements: DependentOperandReplacement[]
+  ): DependentOperand {
     var clone = this.clone();
-    this.clone.operands[index] = newOperand;
+    replacements.forEach(r => {
+      var index = clone.operands.indexOf(r.oldOperand);
+      invariant(index !== -1, 'Old operand not found');
+
+      clone.operands[index] = r.newOperand;
+    });
     return clone;
   }
 
   toString(): string {
     var str = this.operands.map(
-      operand => {
-        if (operand instanceof DependentOperand && operand.prefix == null) {
-          return `(${operand.toString()})`;
-        }
-        return operand.toString();
-      }
-    ).join(this.operation.operator);
+      operand => operand.toString()
+    ).join(` ${this.operation.operator} `);
 
-    if (this.operation.prefix) {
-      str = `${this.operation.prefix}(${str})`;
-    }
-
-    return str;
+    return `dependent#${this.getID()}${this.operation.prefix || ''}(${str})`;
   }
 }
 
@@ -196,20 +236,16 @@ export type Style = {
   image: ?string,
 }
 
-export class Box {
+export class Box extends HasUniqueID {
   _layout: Layout;
   _mutableLayout: MutableLayout;
-
-  // Layout
-  _w: ?Constraint;
-  _h: ?Constraint;
-  _x: ?Constraint;
-  _y: ?Constraint;
 
   // Non-layout
   style: Style;
 
   constructor() {
+    super();
+
     this.style = {
       background: null,
       fontSize: null,
@@ -225,11 +261,6 @@ export class Box {
     invariant(this._layout == null, 'Must not have a layout already');
     this._layout = layout;
     this._mutableLayout = mutableLayout;
-
-    this.setW(this._w);
-    this.setH(this._h);
-    this.setX(this._x);
-    this.setY(this._y);
   }
 
   getLayout(): Layout {
@@ -238,120 +269,152 @@ export class Box {
 
   getConstraints(): Constraint[] {
     var constraints: Constraint[] = [];
-    if (this._w) {
-      constraints.push(this._w);
+    var x = this.getX();
+    if (x) {
+      constraints.push(x);
     }
-    if (this._h) {
-      constraints.push(this._h);
+    var y = this.getY();
+    if (y) {
+      constraints.push(y);
     }
-    if (this._x) {
-      constraints.push(this._x);
+    var w = this.getW();
+    if (w) {
+      constraints.push(w);
     }
-    if (this._y) {
-      constraints.push(this._y);
+    var h = this.getH();
+    if (h) {
+      constraints.push(h);
     }
     return constraints;
   }
 
-  getW(): ?Constraint {
-    return this._w;
-  }
-
-  getH(): ?Constraint {
-    return this._h;
-  }
-
   getX(): ?Constraint {
-    return this._x;
+    var props = this._layout.getPropertiesForBox(this);
+    for (var prop of props) {
+      if (prop.x) {
+        return prop.x;
+      }
+    }
+
+    return null;
   }
 
   getY(): ?Constraint {
-    return this._y;
+    var props = this._layout.getPropertiesForBox(this);
+    for (var prop of props) {
+      if (prop.y) {
+        return prop.y;
+      }
+    }
+
+    return null;
+  }
+
+  getW(): ?Constraint {
+    var props = this._layout.getPropertiesForBox(this);
+    for (var prop of props) {
+      if (prop.w) {
+        return prop.w;
+      }
+    }
+
+    return null;
+  }
+
+  getH(): ?Constraint {
+    var props = this._layout.getPropertiesForBox(this);
+    for (var prop of props) {
+      if (prop.h) {
+        return prop.h;
+      }
+    }
+
+    return null;
   }
 
   setW(w: ?Constraint): Box {
-    if (this._w) {
-      this._layout.replaceConstraint(this._w, w);
+    var oldW = this.getW();
+    if (oldW) {
+      this._layout.replaceConstraint(oldW, w);
     } else if (w) {
       this._mutableLayout.addProperty({
         box: this,
         w: w,
       });
     }
-    this._w = w;
     return this;
   }
 
   setH(h: ?Constraint): Box {
-    if (this._h) {
-      this._layout.replaceConstraint(this._h, h);
+    var oldH = this.getH();
+    if (oldH) {
+      this._layout.replaceConstraint(oldH, h);
     } else if (h) {
       this._mutableLayout.addProperty({
         box: this,
         h: h,
       });
     }
-    this._h = h;
     return this;
   }
 
   setX(x: ?Constraint): Box {
-    if (this._x) {
-      this._layout.replaceConstraint(this._x, x);
+    var oldX = this.getX();
+    if (oldX) {
+      this._layout.replaceConstraint(oldX, x);
     } else if (x) {
       this._mutableLayout.addProperty({
         box: this,
         x: x,
       });
     }
-    this._x = x;
     return this;
   }
 
   setY(y: ?Constraint): Box {
-    if (this._y) {
-      this._layout.replaceConstraint(this._y, y);
+    var oldY = this.getY();
+    if (oldY) {
+      this._layout.replaceConstraint(oldY, y);
     } else if (y) {
       this._mutableLayout.addProperty({
         box: this,
         y: y,
       });
     }
-    this._y = y;
     return this;
   }
 
   constraintsToString(): string {
-    var w = constraintToString(this._w);
-    var h = constraintToString(this._h);
-    var x = constraintToString(this._x);
-    var y = constraintToString(this._y);
-    return `w: ${w}, h: ${h}, x: ${x}, y: ${y}`;
+    var x = constraintToString(this.getX());
+    var y = constraintToString(this.getY());
+    var w = constraintToString(this.getW());
+    var h = constraintToString(this.getH());
+    return `x: ${x}, y: ${y}, w: ${w}, h: ${h}`;
   }
 
   toString(): string {
-    return `box (${this.constraintsToString()})`;
+    return `box#${this.getID()} (${this.constraintsToString()})`;
   }
 }
 
 export type Property =
-  { box: Box, w: Constraint, } |
-  { box: Box, h: Constraint, } |
   { box: Box, x: Constraint, } |
-  { box: Box, y: Constraint, }
+  { box: Box, y: Constraint, } |
+  { box: Box, w: Constraint, } |
+  { box: Box, h: Constraint, }
 
 export function getPropertyConstraint(prop: Property): Constraint {
-  if (prop.w) {
-    return prop.w;
-  }
-  if (prop.h) {
-    return prop.h;
-  }
   if (prop.x) {
     return prop.x;
   }
   if (prop.y) {
     return prop.y;
+  }
+  if (prop.w) {
+    return prop.w;
+  }
+  if (prop.h) {
+    return prop.h;
   }
   invariant(false, 'flow');
 }
@@ -360,18 +423,6 @@ function clonePropertyWithNewConstraint(
   prop: Property,
   constraint: Constraint
 ): Property {
-  if (prop.w) {
-    return {
-      box: prop.box,
-      w: constraint,
-    };
-  }
-  if (prop.h) {
-    return {
-      box: prop.box,
-      h: constraint,
-    };
-  }
   if (prop.x) {
     return {
       box: prop.box,
@@ -382,6 +433,18 @@ function clonePropertyWithNewConstraint(
     return {
       box: prop.box,
       y: constraint,
+    };
+  }
+  if (prop.w) {
+    return {
+      box: prop.box,
+      w: constraint,
+    };
+  }
+  if (prop.h) {
+    return {
+      box: prop.box,
+      h: constraint,
     };
   }
   invariant(false, 'flow');
@@ -422,13 +485,14 @@ export class Layout {
     invariant(index !== -1, 'Box already not in layout');
 
     this.getPropertiesForBox(box).forEach(
-      prop =>
+      prop => {
         invariant(
           this.getPropertiesDirectlyDependentOn(
             getPropertyConstraint(prop)
           ).length === 0,
           'Other props depend on this box\'s props'
-        )
+        );
+      }
     );
 
     this._boxes.splice(index, 1);
@@ -483,11 +547,7 @@ export class Layout {
 
   _removeConstraint(constraint: Constraint) {
     var index = this._properties.findIndex(
-      prop =>
-        prop.box.getW() === constraint ||
-        prop.box.getH() === constraint ||
-        prop.box.getX() === constraint ||
-        prop.box.getY() === constraint
+      prop => getPropertyConstraint(prop) === constraint
     );
     invariant(index !== -1, 'Constraint not in layout for removal');
 

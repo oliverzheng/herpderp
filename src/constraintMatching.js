@@ -15,13 +15,21 @@ import _ from 'underscore';
 
 export class IterativeComponentReplacement {
   _layout: Layout;
+  _stepCallback: ?() => void;
 
   constructor(layout: Layout) {
     this._layout = layout;
   }
 
+  setStepCallback(callback: ?() => void) {
+    this._stepCallback = callback;
+  }
+
   run(): bool {
     while (!this._isDone()) {
+      if (this._stepCallback) {
+        this._stepCallback();
+      }
       var replacementResult: ?ComponentReplacement;
 
       // Use preferred patterns first
@@ -47,6 +55,9 @@ export class IterativeComponentReplacement {
         return false;
       }
     }
+    if (this._stepCallback) {
+      this._stepCallback();
+    }
     return true;
   }
 
@@ -70,6 +81,9 @@ export class IterativeComponentReplacement {
       }
     );
 
+    // TODO use Sets
+    affectedProps = _.uniq(affectedProps);
+
     // TODO there's a bug here where the replaced constraint may be a dependent
     // of affectedProps, and we'll have to recalculate.
     affectedProps.forEach(
@@ -78,7 +92,10 @@ export class IterativeComponentReplacement {
         var newConstraint = null;
         if (replacement.component) {
           newConstraint =
-            replacement.component.getReplacementConstraint(oldConstraint);
+            replacement.component.getReplacementConstraint(
+              oldConstraint,
+              replacement.boxesToReplace
+            );
         }
         this._layout.replaceConstraint(oldConstraint, newConstraint);
       }

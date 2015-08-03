@@ -2,10 +2,13 @@
 
 import {
   Box,
+  DependentOperand,
   Layout,
   Length,
+  Operation,
 } from './layoutIntent';
 import {IterativeComponentReplacement} from './constraintMatching';
+import nullthrows from './nullthrows';
 
 var layout = new Layout();
 
@@ -26,16 +29,38 @@ box2.setY(Length.px(50));
 box2.setW(Length.px(100));
 box2.setH(Length.px(100));
 
+// Box with dependent constraints
+var box3 = new Box();
+layout.addBox(box3);
+box3.setX(
+  new DependentOperand(
+    Operation.EQUALS,
+    [nullthrows(box1.getX())]
+  )
+);
+box3.setY(
+  new DependentOperand(
+    Operation.ADD,
+    [
+      nullthrows(box1.getY()),
+      nullthrows(box1.getH()),
+      Length.px(50),
+    ]
+  )
+);
+box3.setW(Length.px(200));
+box3.setH(Length.px(200));
+box3.style.background = 'green';
+
 var replacement = new IterativeComponentReplacement(layout);
 
-console.log('layout before:');
-console.log(layout.toString());
-
-console.log('');
-console.log('replacing start');
+console.log('-- Replacing start');
+var step = 0;
+replacement.setStepCallback(
+  () => {
+    console.log('-- Step', step++);
+    console.log(layout.toString());
+  }
+);
 var result = replacement.run();
-console.log('replacing end:', result);
-console.log('');
-
-console.log('layout after:');
-console.log(layout.toString());
+console.log('-- Replacing end result =', result);
