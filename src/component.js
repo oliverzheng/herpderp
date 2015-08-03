@@ -4,11 +4,12 @@ import {
   Box,
   Constraint,
   cloneConstraint,
+  getPropertyConstraint,
 } from './layoutIntent';
 import invariant from 'invariant';
 
 export type ComponentReplacement = {
-  component: Component,
+  component: ?Component,
   boxesToReplace: Box[],
 }
 
@@ -36,12 +37,32 @@ export class Patterns {
     return null;
   }
 
+  static uselessBox(box: Box): ?ComponentReplacement {
+    var layout = box.getLayout();
+    var props = layout.getPropertiesForBox(box);
+    var hasDependentProps = props.some(
+      prop =>
+        layout.getPropertiesDirectlyDependentOn(
+          getPropertyConstraint(prop)
+        ).length > 0
+    );
+    if (hasDependentProps) {
+      return null;
+    }
+
+    return {
+      component: null,
+      boxesToReplace: [box],
+    };
+  }
+
   static allPatterns: Pattern[];
 }
 
 Patterns.allPatterns = [
   Patterns.hasBackground,
   Patterns.isImage,
+  Patterns.uselessBox,
 ];
 
 export class Component extends Box {

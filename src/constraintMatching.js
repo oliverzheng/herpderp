@@ -74,11 +74,13 @@ export class IterativeComponentReplacement {
     // of affectedProps, and we'll have to recalculate.
     affectedProps.forEach(
       prop => {
-        var constraint = getPropertyConstraint(prop);
-        this._layout.replaceConstraint(
-          constraint,
-          replacement.component.getReplacementConstraint(constraint)
-        );
+        var oldConstraint = getPropertyConstraint(prop);
+        var newConstraint = null;
+        if (replacement.component) {
+          newConstraint =
+            replacement.component.getReplacementConstraint(oldConstraint);
+        }
+        this._layout.replaceConstraint(oldConstraint, newConstraint);
       }
     );
 
