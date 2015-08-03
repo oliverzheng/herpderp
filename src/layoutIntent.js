@@ -193,7 +193,10 @@ export function cloneConstraint(constraint: Constraint): Constraint {
   return constraint.clone();
 }
 
-export function constraintDirectlyDependsOn(constraint: Constraint, dependent: Constraint): bool {
+export function constraintDirectlyDependsOn(
+  constraint: Constraint,
+  dependent: Constraint
+): bool {
   // Don't count it as a dependent if it's the same thing
   if (constraint === dependent) {
     return false;
@@ -206,7 +209,10 @@ export function constraintDirectlyDependsOn(constraint: Constraint, dependent: C
   return _.contains(constraint.operands, dependent);
 }
 
-export function constraintDependsOn(constraint: Constraint, dependent: Constraint): bool {
+export function constraintDependsOn(
+  constraint: Constraint,
+  dependent: Constraint
+): bool {
   // Don't count it as a dependent if it's the same thing
   if (constraint === dependent) {
     return false;
@@ -220,7 +226,9 @@ export function constraintDependsOn(constraint: Constraint, dependent: Constrain
   }
 
   invariant(constraint instanceof DependentOperand, 'flow');
-  return constraint.operands.some((operand) => constraintDependsOn(operand, dependent));
+  return constraint.operands.some(
+    (operand) => constraintDependsOn(operand, dependent)
+  );
 }
 
 export function constraintToString(constraint: ?Constraint): string {
@@ -452,7 +460,8 @@ function clonePropertyWithNewConstraint(
 
 type MutableLayout = {
   addProperty: (prop: Property) => void,
-  replaceConstraint: (oldConstraint: Constraint, newConstraint: ?Constraint) => void,
+  replaceConstraint:
+    (oldConstraint: Constraint, newConstraint: ?Constraint) => void,
 }
 
 export class Layout {
@@ -523,7 +532,8 @@ export class Layout {
 
   getPropertiesDirectlyDependentOn(constraint: Constraint): Property[] {
     return this._properties.filter(
-      prop => constraintDirectlyDependsOn(getPropertyConstraint(prop), constraint)
+      prop =>
+        constraintDirectlyDependsOn(getPropertyConstraint(prop), constraint)
     );
   }
 
@@ -586,7 +596,10 @@ export class Layout {
           invariant(newConstraint, 'flow');
           this.replaceConstraint(
             dependentConstraint,
-            dependentConstraint.cloneAndReplaceOperand(oldConstraint, newConstraint)
+            dependentConstraint.cloneAndReplaceOperand(
+              oldConstraint,
+              newConstraint
+            )
           );
         }
       );
