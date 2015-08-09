@@ -5,11 +5,13 @@ import {
   Constraint,
   DependentOperand,
   DependentOperandReplacement,
+  Layout,
   cloneConstraint,
   getPropertyConstraint,
 } from './layoutIntent';
 import nullthrows from './nullthrows';
 import invariant from 'invariant';
+import {Repr} from './repr';
 
 export type ComponentReplacement = {
   component: ?Component,
@@ -69,6 +71,16 @@ Patterns.allPatterns = [
 ];
 
 export class Component extends Box {
+  _childrenLayout: Layout;
+
+  constructor() {
+    super();
+    this._childrenLayout = new Layout();
+  }
+
+  getChildrenLayout(): Layout {
+    return this._childrenLayout;
+  }
 
   getReplacementConstraint(
     constraint: Constraint,
@@ -122,8 +134,13 @@ export class Component extends Box {
     return constraint.cloneAndReplaceOperands(replacementConstraints);
   }
 
-  toString(): string {
-    return `component#${this.getID()} (${this.constraintsToString()})`;
+  toRepr(): Repr {
+    return {
+      self: `component#${this.getID()} (${this.constraintsToString()})`,
+      children: [
+        this._childrenLayout.toRepr(),
+      ],
+    };
   }
 
   static cloneFromBox(box: Box): Component {

@@ -2,6 +2,7 @@
 
 import _ from 'underscore';
 import invariant from 'invariant';
+import {Repr} from './repr';
 
 class HasUniqueID {
   _id: number;
@@ -400,8 +401,11 @@ export class Box extends HasUniqueID {
     return `x: ${x}, y: ${y}, w: ${w}, h: ${h}`;
   }
 
-  toString(): string {
-    return `box#${this.getID()} (${this.constraintsToString()})`;
+  toRepr(): Repr {
+    return {
+      self: `box#${this.getID()} (${this.constraintsToString()})`,
+      children: null,
+    };
   }
 }
 
@@ -537,8 +541,11 @@ export class Layout {
     );
   }
 
-  toString(): string {
-    return this._boxes.map(box => box.toString()).join('\n');
+  toRepr(): Repr {
+    return {
+      self: null,
+      children: this._boxes.map(box => box.toRepr()),
+    };
   }
 
   _addProperty(prop: Property) {

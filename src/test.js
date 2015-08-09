@@ -9,6 +9,7 @@ import {
 } from './layoutIntent';
 import {IterativeComponentReplacement} from './constraintMatching';
 import nullthrows from './nullthrows';
+import {reprToString} from './repr';
 
 var layout = new Layout();
 
@@ -54,13 +55,13 @@ box3.style.background = 'green';
 
 var replacement = new IterativeComponentReplacement(layout);
 
-console.log('-- Replacing start');
+console.log('# Replacing start');
 var step = 0;
 replacement.setStepCallback(
   () => {
-    console.log('-- Step', step++);
-    console.log(layout.toString());
+    console.log('# Step', step++);
+    console.log(reprToString(layout.toRepr()));
   }
 );
 var result = replacement.run();
-console.log('-- Replacing end result =', result);
+console.log('# Replacing end result =', result);
